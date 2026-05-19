@@ -73,7 +73,7 @@ PrepIQ is a full-stack interview preparation platform that combines career profi
 |-------|-------------|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Radix UI, Framer Motion, Recharts |
 | **Backend** | FastAPI, SQLAlchemy, Pydantic v2, Uvicorn |
-| **Database** | PostgreSQL (Neon) · SQLite for tests |
+| **Database** | PostgreSQL (Neon) · SQLite for local dev and tests |
 | **AI** | OpenRouter (free models with graceful mock fallback) |
 | **ML / NLP** | spaCy 3.7 (NER), scikit-learn (TF-IDF cosine similarity), TextBlob (sentiment analysis) |
 | **Auth** | HMAC-signed bearer tokens, PBKDF2 password hashing |
@@ -87,8 +87,11 @@ PrepIQ is a full-stack interview preparation platform that combines career profi
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 22+
-- [Python](https://www.python.org/) 3.10+
-- [PostgreSQL](https://www.postgresql.org/) 16+ (or use SQLite for local dev)
+- [Python](https://www.python.org/) 3.10-3.12 recommended
+- [PostgreSQL](https://www.postgresql.org/) 16+ for Docker/production, or SQLite for simple local development
+
+> The backend Docker image uses Python 3.10, and CI currently verifies Python 3.10 and 3.11.
+> Newer Python versions may not have compatible wheels for the pinned ML/NLP dependencies.
 
 ### 1. Clone
 
@@ -102,12 +105,18 @@ cd prepiq
 Copy the example environment file:
 
 ```bash
+# macOS/Linux
 cp .env.example .env
+```
+
+```powershell
+# Windows PowerShell
+Copy-Item .env.example .env
 ```
 
 Open `.env` and update the values for your local setup.
 
-For simple local development, you can use SQLite instead of PostgreSQL:
+For simple manual local development, use SQLite instead of the Docker-oriented PostgreSQL default:
 
 ```env
 DATABASE_URL=sqlite:///./backend/local.db
@@ -126,28 +135,54 @@ VITE_API_BASE_URL=
 The Vite dev server automatically proxies `/api` requests to `localhost:8000`.
 
 Only set `VITE_API_BASE_URL` when the frontend is deployed separately, such as a Vercel frontend pointing to a Render backend URL.
+
 ### 3. Install dependencies
 
 ```bash
 # Frontend
 npm install
+```
 
-# Backend
-pip install -r backend/requirements.txt
+Create and activate a Python virtual environment before installing backend dependencies:
+
+```bash
+# macOS/Linux
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
 
 # NLP model assets — required for ML features
 python -m spacy download en_core_web_sm
 python -m textblob.download_corpora
 ```
 
+```powershell
+# Windows PowerShell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r backend/requirements.txt
+
+# NLP model assets — required for ML features
+python -m spacy download en_core_web_sm
+python -m textblob.download_corpora
+```
+
+If you use Python 3.10 or 3.12 instead, replace `3.11` with your installed supported version.
+
 > If you skip the NLP step, the app still works — ML features fall back to keyword-only matching and neutral sentiment scores.
 
 ### 4. Run locally
 
+Run the backend from the activated virtual environment:
+
 ```bash
 # Terminal 1 — Backend (port 8000)
 python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
+Run the frontend in a separate terminal:
+
+```bash
 # Terminal 2 — Frontend (port 8080)
 npm run dev
 ```
